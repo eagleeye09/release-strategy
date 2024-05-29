@@ -9,13 +9,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/redirect@v3
+        uses: actions/checkout@v3
 
       - name: Extract Issue Number from PR Title
         id: extract-issue
         run: |
           ISSUE_NUMBER=$(echo "${{ github.event.pull_request.title }}" | grep -oP '(?<=#)\d+')
-          echo "ISSUE_NUMBER=$ISSUE_NUMBER" >> $GITHUB_ENV
+          echo "::set-output name=ISSUE_NUMBER::$ISSUE_NUMBER"
 
       - name: Output Issue Number
-        run: echo "Issue Number is $ISSUE_NUMBER"
+        run: echo "The PR is related to Issue #${{ steps.extract-issue.outputs.ISSUE_NUMBER }}"
+
+
+      - name: Use the Issue Number in Another Step (Example)
+        if: steps.extract-issue.outputs.ISSUE_NUMBER != ''
+        run: echo "The PR is related to Issue #${{ steps.extract-issue.outputs.ISSUE_NUMER }}"
