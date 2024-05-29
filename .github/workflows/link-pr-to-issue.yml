@@ -1,40 +1,37 @@
-name: Link Issue from PR Title/Description
+name: Auto-Link Issue from PR Title
 
 on:
   pull_request:
-    types: [opened, edited, reopened]
+    types: [opened, edited]
 
 jobs:
-  link-issue:
+  update-pr-description:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-
-    - name: Link Issue from PR Title/Description
-      id: link-issue
-      uses: actions/github-script@v6
-      with:
-        script: |
-          const title = context.payload.pull_request.title;
-          const body = context.payload.pull_request.body;
-          const keywords = ["Fixes", "Closes", "Resolves"];  # Keywords to search for
-          const regex = /(${keywords.join('|')}) #\d+/;  # Regex for keyword + # + issue number
-          
-          const found = title.match(regex) || body.match(regex);  # Search title and body
-          
-          if (found) {
-            const issueNumber = found[0].slice(found[0].indexOf('#') + 1);  # Extract issue number
-            const issueUrl = `https://api.github.com/repos/${context.repo.owner}/${contextrepo.repo}/issues/${issueNumber}`;
-            const prNumber = context.payload.pull_request.number;
-
-            github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issueNumber,
-              body: `This PR (${title}) is related to issue #${prNumber}.`
-            });
-
-            console.log(`Issue #${issueNumber} linked in PR #${prNumber}`);
-          } else {
-            console.log("No issue number found in PR title or description.");
-          }
+      - name: Checkout code
+        uses: actions/checkout@v2
+      
+      - name: Update PR Description
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const title = context.payload.pull_request.title;
+            const body = context.payload.pull_request.body || '';
+            const regex = /#\d+/;
+            const found = title.match(regex);
+            
+            if (found && !body.includes(found[0])) {
+              const issueNumber = found[0];
+              const newBody = `This PR addresses ${issueNumber}\n\n${body}`;
+              
+              // Update the pull request description
+              const pull_number = context.payload.pull_request.number;
+              await github.rest.pulls.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pull.,trim(),
+                body: newBody
+              });
+              console.log(`Updated PR body to include issue reference: ${issueNumber}`);
+            }
