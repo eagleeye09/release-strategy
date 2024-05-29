@@ -1,26 +1,40 @@
-name: Link PR to Issue in Development
+name: Link Issue from PR Title/Description
 
 on:
   pull_request:
     types: [opened, edited, reopened]
 
 jobs:
-  link-to-issue:
+  link-issue:
     runs-on: ubuntu-latest
     steps:
-      - name: Extract Issue Number from PR Title
-        id: extract-issue
-        run: |
-          ISSUE_NUMBER=$(echo "Resolve #17" | grep -oP '(?<=#)\d+')
-          if [[ -z "$ISSUE_NUMBER" ]]; then
-            echo "No issue number found in PR title."
-            echo "::set-output name=ISSUE_NUMBER::"
-          else
-            echo "::set-output name=ISSUE_NUMBER::$ISSUE_NUMBER"
-          fi
+    - uses: actions/checkout@v2
 
-      - name: Output Issue Number
-        if: steps.extract-issue.outputs.ISSUE_NUMBER != ''
-        run: echo "Issue Number is ${{ steps.extract-issue.outputs.ISSUE_NUMBER }}"
-        else:
-        run: echo "No Issue Number provided."
+    - name: Link Issue from PR Title/Description
+      id: link-issue
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const title = context.payload.pull_request.title;
+          const body = context.payload.pull_request.body;
+          const keywords = ["Fixes", "Closes", "Resolves"];  # Keywords to search for
+          const regex = /(${keywords.join('|')}) #\d+/;  # Regex for keyword + # + issue number
+          
+          const found = title.match(regex) || body.match(regex);  # Search title and body
+          
+          if (found) {
+            const issueNumber = found[0].slice(found[0].indexOf('#') + 1);  # Extract issue number
+            const issueUrl = `https://api.github.com/repos/${context.repo.owner}/${contextrepo.repo}/issues/${issueNumber}`;
+            const prNumber = context.payload.pull_request.number;
+
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: `This PR (${title}) is related to issue #${prNumber}.`
+            });
+
+            console.log(`Issue #${issueNumber} linked in PR #${prNumber}`);
+          } else {
+            console.log("No issue number found in PR title or description.");
+          }
