@@ -1,23 +1,42 @@
-name: Link PR to Issue
+name: Link PR to Issue in Development
 
 on:
   pull_request:
-    types: [opened, edited]
+    types: [opened, edited, reopened]
 
 jobs:
-  link_pr_to_issue:
+  link-to-issue:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out the repo
-        uses: actions/checkout@v2
-
-      - name: Extract issue number from PR title
-        id: extract_issue_number
-        run: echo "::set-output name=issue_number::$(echo ${{ github.event.pull_request.title }} | grep -o '#[0-9]*' | cut -d'#' -f2)"
+      - name: Extract Issue Number from PR Title
+        id: extract-issue
+        run: |
+          ISSUE_NUMBER=$(echo ${{ github.event.pull_request.title }} | grep -oP '(?<=#)\d+')
+          echo "::set-output name=ISSUE_NUMBER::$ISSUE_NUMBER"
 
       - name: Link PR to Issue
-        if: steps.extract_issue_number.outputs.issue_number
-        uses: peter-evans/link-pull-request@v1
+        if: steps.extract-issue.outputs.ISSUE_NUMBER
+        uses: actions/github-script@v6
         with:
-          issue-number: ${{ steps.extract_issue_number.outputs.issue_number }}
-          pull-request-number: ${{ github.event.pull_request.number }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issueNumber = ${{ steps.extract-issue.outputs.ISSUE_NUMBER }};
+            const prNumber = ${{ github.event.number }};
+            const repository = ${{ github.repository }};
+            const query = `
+              mutation($repository: String!, $prNumber: Int!, $issueNumber: Int!) {
+                addProjectV2ItemById(input: {projectId: "9028992", contentId: $issueNumber}) {
+                  item {
+                    id
+                  }
+                }
+                updatePullRequest(input: {pullRequestId: $prType_$prNumber, issueId: $issueType_$issueNumber}) {
+                  clientMutationId
+                }
+              }
+            `;
+            await github.graphql(query, {
+              repository,
+              prNumber,
+              issueNumber
+            });
