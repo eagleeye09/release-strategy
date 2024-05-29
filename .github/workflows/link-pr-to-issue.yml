@@ -18,7 +18,8 @@ jobs:
           echo "::set-output name=ISSUE_NUMBER::$ISSUE_NUMBER"
 
       - name: Output Issue Number
-        run: echo "Extracted Issue Number is ${{ steps.extract-issue.outputs.ISSUE_NUMBER }}"
+        run: echo "The PR is related to Issue #${{ steps.extract-issue.outputs.ISSUE_NUMBER }}"
+
 
       - name: Use the Issue Number in Another Step (Example)
         if: steps.extract-issue.outputs.ISSUE_NUMBER != ''
