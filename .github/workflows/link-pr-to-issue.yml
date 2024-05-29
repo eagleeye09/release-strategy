@@ -8,14 +8,19 @@ jobs:
   link-to-issue:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2  # Ensure you're using the correct version of checkout
-
       - name: Extract Issue Number from PR Title
         id: extract-issue
         run: |
-          ISSUE_NUMBER=$(echo "${{ github.event.pull_detail.title }}" | grep -oP '(?<=#)\d+')
-          echo "::set-output name=ISSUE_NUMBER::$ISSUE_NUMBER"
+          ISSUE_NUMBER=$(echo "Resolve #17" | grep -oP '(?<=#)\d+')
+          if [[ -z "$ISSUE_NUMBER" ]]; then
+            echo "No issue number found in PR title."
+            echo "::set-output name=ISSUE_NUMBER::"
+          else
+            echo "::set-output name=ISSUE_NUMBER::$ISSUE_NUMBER"
+          fi
 
-      - name: Output Issue Message
-        run: echo "The PR is related to Issue #${{ steps.extract-issue.outputs.ISSUE_NUMBER }}"
+      - name: Output Issue Number
+        if: steps.extract-issue.outputs.ISSUE_NUMBER != ''
+        run: echo "Issue Number is ${{ steps.extract-issue.outputs.ISSUE_NUMBER }}"
+        else:
+        run: echo "No Issue Number provided."
