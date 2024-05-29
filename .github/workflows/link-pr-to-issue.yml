@@ -1,0 +1,23 @@
+name: Link PR to Issue
+
+on:
+  pull_request:
+    types: [opened, edited]
+
+jobs:
+  link_pr_to_issue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v2
+
+      - name: Extract issue number from PR title
+        id: extract_issue_number
+        run: echo "::set-output name=issue_number::$(echo ${{ github.event.pull_request.title }} | grep -o '#[0-9]*' | cut -d'#' -f2)"
+
+      - name: Link PR to Issue
+        if: steps.extract_issue_number.outputs.issue_number
+        uses: peter-evans/link-pull-request@v1
+        with:
+          issue-number: ${{ steps.extract_issue_number.outputs.issue_number }}
+          pull-request-number: ${{ github.event.pull_request.number }}
