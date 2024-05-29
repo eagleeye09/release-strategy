@@ -9,18 +9,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2  # Ensure you're using the correct version of checkout
 
       - name: Extract Issue Number from PR Title
         id: extract-issue
         run: |
-          ISSUE_NUMBER=$(echo "${{ github.event.pull_request.title }}" | grep -oP '(?<=#)\d+')
+          ISSUE_NUMBER=$(echo "${{ github.event.pull_detail.title }}" | grep -oP '(?<=#)\d+')
           echo "::set-output name=ISSUE_NUMBER::$ISSUE_NUMBER"
 
-      - name: Output Issue Number
+      - name: Output Issue Message
         run: echo "The PR is related to Issue #${{ steps.extract-issue.outputs.ISSUE_NUMBER }}"
-
-
-      - name: Use the Issue Number in Another Step (Example)
-        if: steps.extract-issue.outputs.ISSUE_NUMBER != ''
-        run: echo "The PR is related to Issue #${{ steps.extract-issue.outputs.ISSUE_NUMER }}"
