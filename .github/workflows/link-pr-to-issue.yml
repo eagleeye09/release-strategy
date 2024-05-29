@@ -8,35 +8,14 @@ jobs:
   link-to-issue:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/redirect@v3
+
       - name: Extract Issue Number from PR Title
         id: extract-issue
         run: |
-          ISSUE_NUMBER=$(echo ${{ github.event.pull_request.title }} | grep -oP '(?<=#)\d+')
-          echo "::set-output name=ISSUE_NUMBER::$ISSUE_NUMBER"
+          ISSUE_NUMBER=$(echo "${{ github.event.pull_request.title }}" | grep -oP '(?<=#)\d+')
+          echo "ISSUE_NUMBER=$ISSUE_NUMBER" >> $GITHUB_ENV
 
-      - name: Link PR to Issue
-        if: steps.extract-issue.outputs.ISSUE_NUMBER
-        uses: actions/github-script@v6
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const issueNumber = ${{ steps.extract-issue.outputs.ISSUE_NUMBER }};
-            const prNumber = ${{ github.event.number }};
-            const repository = ${{ github.repository }};
-            const query = `
-              mutation($repository: String!, $prNumber: Int!, $issueNumber: Int!) {
-                addProjectV2ItemById(input: {projectId: "9028992", contentId: $issueNumber}) {
-                  item {
-                    id
-                  }
-                }
-                updatePullRequest(input: {pullRequestId: $prType_$prNumber, issueId: $issueType_$issueNumber}) {
-                  clientMutationId
-                }
-              }
-            `;
-            await github.graphql(query, {
-              repository,
-              prNumber,
-              issueNumber
-            });
+      - name: Output Issue Number
+        run: echo "Issue Number is $ISSUE_NUMBER"
